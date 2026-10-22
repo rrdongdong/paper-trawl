@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Syntax gate
+        run: python -m compileall -q scripts tests
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: CLI smoke (offline parts only)
+        run: |
+          python scripts/venue_check.py --list > /dev/null
+          python scripts/venue_check.py \
+            --a-venue "IEEE Robotics and Automation Letters" --a-doi "10.1109/lra.2099.1" \
+            --b-venue "CVPR 2099 Findings" --b-id "arXiv:2099.1" \
+            --workspace fixtures | grep -q "可用（venue 只作标注，不否决）"
+
+      - name: Ledger fixture validates
+        run: |
+          mkdir -p /tmp/ws && cp fixtures/ledger_min.md /tmp/ws/论文台账.md
+          python scripts/ledger.py validate --workspace /tmp/ws

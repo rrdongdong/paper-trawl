@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# 生成物不入库（它们是 skill 的运行产物，不是源码）
+文献阅读总结_*.md
+早读报告*.md
+论文台账.md

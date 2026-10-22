@@ -1,0 +1,4 @@
+interface:
+  display_name: "科研早读"
+  short_description: "IEEE Trans + CCF-A 双轨选文，全文精读、查重与台账闭环"
+  default_prompt: "使用 $research-early-reading 出一期早读：1 篇 IEEE Transactions + 1 篇 CCF-A 会议，先查台账查重，全文精读，产出 <M.DD>早读报告.md 并回填台账。"
