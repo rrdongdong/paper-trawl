@@ -159,14 +159,33 @@ def classify(venue: str, doi: str = ""):
             return "conference", "S", f"✅ {CONF_S[k]}：{venue}"
         return "conference", "A", f"🟡 会议（清单外）：{venue}；层级 A，报告中需注明"
 
+    # —— 期刊首字母缩写（TVCG / TIP / TRO …）：只认白名单，避免误吞会议名
+    ACRONYM_JOURNAL = {
+        "tpami": "pattern analysis and machine intelligence", "tip": "image processing",
+        "tmm": "transactions on multimedia", "tnnls": "neural networks and learning systems",
+        "tkde": "knowledge and data engineering", "tse": "software engineering",
+        "tro": "transactions on robotics", "tgrs": "geoscience and remote sensing",
+        "tcsvt": "circuits and systems for video technology",
+        "tvcg": "visualization and computer graphics", "tmi": "medical imaging",
+        "tase": "automation science and engineering", "ral": "robotics and automation letters",
+    }
+    for acr, sub in ACRONYM_JOURNAL.items():
+        if re.search(rf"\b{acr}\b", v):
+            tier = "S" if sub in JOURNAL_S else "A"
+            note = "" if tier == "S" else "；层级 A，报告中需注明"
+            return "journal", tier, f"🟡 IEEE {acr.upper()}（缩写识别为 {sub}）{note}"
+
     # —— IEEE/ACM *Letters*（如 RA-L）：期刊，但非 Transactions，层级 A
     if re.search(r"\b(?:ieee|acm)\b.*\bletters\b", v) or "robotics and automation letters" in v:
         return "journal", "A", f"🟡 IEEE/ACM Letters（非 Transactions）：{venue}；层级 A，报告中需注明"
 
-    m = re.search(r"(?:ieee|acm)\s+(?:transactions on|journal of)\s+(.+)", v)
+    # 兼容真实文献里的缩写：IEEE Trans. on X / IEEE Trans. X / TVCG 这类首字母缩写
+    m = re.search(r"(?:ieee|acm)\s+(?:transactions?|trans)\s*\.?\s*(?:on)?\s+(.+)", v)
     if m:
         sub = m.group(1)
-        sub = re.sub(r"\s*\(.*?\)\s*$", "", sub).strip()
+        sub = sub.split(",")[0]                      # 去掉 ", vol.35, pp.123" 这类尾巴
+        sub = re.sub(r"\s|\(.*?\)", " ", sub).strip()  # 去多余空格与括号补充
+        sub = re.sub(r"\s{2,}", " ", sub)
         if "robotics and automation letters" in sub:
             return "journal", "A", f"🟡 IEEE RA-L（Letters，非 Transactions）：{venue}；层级 A，报告中需注明"
         if not (d.startswith("10.1109/") or d.startswith("10.1145/") or not d):

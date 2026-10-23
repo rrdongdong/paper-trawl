@@ -32,6 +32,32 @@ jobs:
             --b-venue "CVPR 2099 Findings" --b-id "arXiv:2099.1" \
             --workspace fixtures | grep -q "可用（venue 只作标注，不否决）"
 
+      - name: Problem card parses and refuses
+        run: |
+          cat > /tmp/report.md <<'MD'
+          ### 问题卡 #07
+          - 解决：P-SCALE-01 @ §III-A（E3）
+          - 遗留：P-THEORY-01 @ §V-D（E1）
+          - 批评：M-SCALE-02 @ §II（E2，未对比）
+          - 异常：§V Table 4 = agent 数↑而上行反而↓，论文未解释
+          MD
+          python scripts/cards.py check /tmp/report.md
+          python scripts/cards.py emit /tmp/report.md -o /tmp/card.json
+          python - <<'PY'
+          import json
+          card = json.load(open("/tmp/card.json", encoding="utf-8"))
+          assert card["leaves_open"][0]["evidence"] == "E1"
+          assert card["criticizes"][0]["compared"] is False
+          assert card["anomaly"][0]["loc"].startswith("§V")
+          print("card emits relations with evidence grades")
+          PY
+
+          printf '### 问题卡 #08\n- 局限：L-EVAL-01（E3）\n' > /tmp/bad.md
+          set +e
+          python scripts/cards.py check /tmp/bad.md; bad=$?
+          set -e
+          test "$bad" = "2" || { echo "missing location: expected 2, got $bad"; exit 1; }
+
       - name: Ledger fixture validates
         run: |
           mkdir -p /tmp/ws && cp fixtures/ledger_min.md /tmp/ws/论文台账.md

@@ -1,13 +1,13 @@
 ---
-name: research-early-reading
-description: 科研早读：给一个研究方向，产出 2 篇相关论文的精读报告。双源检索（arXiv + OpenAlex）→ 台账查重→ venue 分层标注（S/A/B，只标注不否决：IEEE
-  Trans、RA-L、ECCV、ICRA、Findings 均可）→ 全文精读 → 8 问压成经验→ 用 ledger.py 维护台账防重复 → 定期用 summarize.py
+name: paper-trawl
+description: 拖网早读：给一个研究方向，产出一期两篇论文的精读报告。双源检索（arXiv + OpenAlex）→ 台账查重 → venue 分层标注（S/A/B，只标注不否决：IEEE
+  Trans、RA-L、ECCV、ICRA、Findings 均可）→ 全文精读 → 8 问压成经验 → ledger.py 维护台账防重复 → 定期用 summarize.py
   产出文献阅读总结。拒绝摘要级解读、拒绝重复论文、拒绝编造数字。
 metadata:
-  slug: research-early-reading
-  displayName: 科研早读
-  version: 1.2.0
-  summary: 方向驱动选文：双源检索 + venue 分层 + 8 问精读 + 台账闭环
+  slug: paper-trawl
+  displayName: Paper Trawl · 拖网早读
+  version: 1.1.0
+  summary: 在文献海里撒网，每天精读两篇：查重、分层、8 问、台账闭环
 ---
 
 # 科研早读
@@ -107,6 +107,39 @@ venue 分层表与检索口径：[references/venues.md](references/venues.md)。
 
 ---
 
+## 第 5.5 步：问题卡（每篇一张，图谱的唯一入口）
+
+报告是给人看的，**问题卡是给图看的**。每篇精读完必须交一张卡，否则这篇论文不进图谱，只留在台账里。
+
+写在报告里，固定格式（脚本会解析）：
+
+```markdown
+### 问题卡 #07
+
+- 解决：P-SCALE-01 @ §III-A（E3）
+- 遗留：P-THEORY-01 @ §V-D（E1）
+- 假设：A-ASSUME-01 @ §III-A（E1）
+- 局限：L-SCALE-01 @ §I（E3）
+- 批评：M-SCALE-02 @ §II（E2，未对比）
+- 异常：§V Table 4 = agent 数↑而上行反而↓，论文未解释
+```
+
+**三条硬规则**（违反会被脚本拒绝，`exit 2`）：
+
+1. **必须用词表 id**（`P/L/A/M` + 六类目 + 两位序号）。写不出 id ⇒ 该概念不在词表里，进待归类池由人裁决；**绝不自动新建 id**（一个概念拆成两个节点，是图谱唯一的死法）。
+2. **必须带位置**（`@ §III-A`）。没有位置的边只是回忆。
+3. **必须标证据等级 E1–E5**，且措辞跟着等级走：`E1` 才可以说「作者承认」；`E3`（我们观察）必须写「我们观察其未覆盖…」；`E5` 必须写「推断」。
+
+```bash
+python3 scripts/cards.py check "<M.DD>早读报告.md"                 # 缺任何一项 = exit 2
+python3 scripts/cards.py emit  "<M.DD>早读报告.md" -o /tmp/card.json
+python3 -m readproof --ledger <ledger.json> card 07 --file /tmp/card.json
+```
+
+判据：`cards.py check` 通过 **且** `readproof card` 接受。词表用 `readproof vocab --file vocab.tsv` 查。
+
+---
+
 ## 第 6 步：维护台账 + 输出汇总（每期必做前一半）
 
 ### 6.1 台账维护（机械操作，用脚本）
@@ -149,6 +182,8 @@ python3 <技能目录>/scripts/summarize.py --out "文献阅读总结_<MMDD>.md"
 - [ ] 两篇都是全文精读（给出全文来源）
 - [ ] 所有数字可在原文表格中找到
 - [ ] 每篇都有 Q4 reject 理由 + Q5 失效条件
+- [ ] **每篇都有一张问题卡**，`scripts/cards.py check` 通过（缺 id / 缺位置 / 缺证据等级 = exit 2）
+- [ ] 问题卡没把 E3/E4/E5 写成「作者承认」
 - [ ] 台账已回填，`ledger.py validate` 通过，累计数 +2
 - [ ] 若触发条件命中（5 的倍数 / 用户要求 / 写作前），已产出 `文献阅读总结_<MMDD>.md` 并补齐 `[待填]` 段
 - [ ] 文件名 `<M.DD>早读报告.md`，位于工作区根目录
@@ -164,3 +199,6 @@ python3 <技能目录>/scripts/summarize.py --out "文献阅读总结_<MMDD>.md"
 - ❌ 只报相对弱基线的增益
 - ❌ 因为 venue 不是 CCF-A 就跳过好论文（**这正是 v1.1 修掉的错误**）
 - ❌ 声称"接近 SOTA/接近中心化"却不给对应基线
+- ❌ **为了凑图而自己发明词表 id**（该进待归类池，由人裁决）
+- ❌ **把我们的推断（E3/E4/E5）写成「作者承认」**——这是整条流水线上最容易越过的一根线
+- ❌ 问题卡只写概念不写位置（没有位置的边只是回忆）

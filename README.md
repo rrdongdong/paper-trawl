@@ -1,5 +1,10 @@
 # research-early-reading
 
+[![CI](https://github.com/rrdongdong/research-early-reading/actions/workflows/ci.yml/badge.svg)](https://github.com/rrdongdong/research-early-reading/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![tests](https://img.shields.io/badge/tests-23%20passing-brightgreen.svg)](./tests)
+
 A [DSH](https://github.com/deepseek-ai/deepseek-harness) (Cordis) **skill**: give it a research
 direction, get a two-paper reading report — searched, deduplicated, venue-tiered, fully read, and
 folded back into a paper ledger.
@@ -20,6 +25,8 @@ direction
   → 8-question read    kernel / replaced assumption / weakest evidence / reject reason /
                        failure condition / transfer cost / formalizable opening / falsifiable claim
   → <MM.DD>早读报告.md  + ledger.py add (index row + detail block, auto-numbered)
+  → 问题卡 (problem card)                  ← the only artefact that feeds the problem graph
+      cards.py check/emit                   vocabulary id + location + evidence grade, or exit 2
   → summarize.py       periodic literature review (auto stats + `[待填]` slots for judgement)
 ```
 
@@ -80,6 +87,7 @@ $ python3 scripts/venue_check.py --a-venue "IEEE Robotics and Automation Letters
 | `venue_check.py --a-venue … --b-venue …` | tier + dedup for a chosen pair | 0 ok / 2 both preprints+low / 3 duplicate |
 | `ledger.py validate\|stats\|add` | ledger integrity, statistics, safe append | 0 ok / 2 problems / 3 duplicate |
 | `summarize.py --out file.md` | literature-review skeleton (auto + `[待填]`) | 0 ok |
+| `cards.py check\|emit report.md` | parse the `问题卡` block into card JSON for the problem graph | 0 ok / 2 missing id, location or evidence grade |
 
 `ledger.py validate` is not decorative — on first run against the author's real ledger it found three
 `S*` entries present in the detail table but missing from the index, plus a stale header count.
@@ -117,6 +125,12 @@ fixtures/ledger_min.md       test fixture
 tests/                       unittest suite
 ```
 
-## License
+## License & data sources
 
 MIT — see [LICENSE](./LICENSE).
+
+This repository contains **no third-party code** (standard library only) and **no paper PDFs**.
+It queries arXiv / OpenAlex / Crossref at runtime and respects their terms (arXiv: ≥3 s between
+requests; OpenAlex metadata is CC0). The S/A/B tiers in `references/venues.md` are **this project's
+editorial judgement**, not a copy of the CCF catalogue. See
+[THIRD-PARTY-NOTICES.md](./THIRD-PARTY-NOTICES.md).

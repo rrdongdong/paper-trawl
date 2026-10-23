@@ -38,7 +38,12 @@ except Exception:  # pragma: no cover
     def classify(venue, doi=""):  # type: ignore[override]
         return "unknown", "?", f"❓ {venue}"
 
-UA = {"User-Agent": "research-early-reading/1.0 (contact: local)"}
+# arXiv 官方 API 礼仪要求：并发 ≤1 请求/3 秒，并在 User-Agent 里给出联系方式。
+# 部署者可通过环境变量补上自己的邮箱；未设置时保留占位（arxiv 不强制，但鼓励）。
+import os as _os
+
+UA = {"User-Agent": "research-early-reading/1.0 (contact: %s)"
+      % (_os.environ.get("EARLY_READING_CONTACT") or "set-EARLY_READING_CONTACT-env")}
 
 
 def fetch(url: str, timeout: int = 45) -> bytes:
@@ -50,6 +55,7 @@ def fetch(url: str, timeout: int = 45) -> bytes:
 # ------------------------------------------------------------------ arXiv
 
 def search_arxiv(topic: str, per_source: int, days: int) -> list[dict]:
+    """查询 arXiv。调用方应保证同一进程内串行，相邻请求间隔 ≥3s（见 UA 处的说明）。"""
     # arXiv 语法：all:"短语"；多词用 AND 连接
     words = [w for w in re.split(r"\s+", topic.strip()) if w]
     phrase = "+AND+".join(f'all:%22{urllib.parse.quote(w)}%22' for w in words)
@@ -65,7 +71,7 @@ def search_arxiv(topic: str, per_source: int, days: int) -> list[dict]:
                 print(f"[warn] arXiv 查询失败（已重试）：{e}", file=sys.stderr)
                 return []
             import time as _t
-            _t.sleep(2)
+            _t.sleep(3)   # arXiv 要求相邻请求间隔 ≥3s
 
     cutoff = date.today() - timedelta(days=days)
     ns = {"a": "http://www.w3.org/2005/Atom", "arxiv": "http://arxiv.org/schemas/atom"}
